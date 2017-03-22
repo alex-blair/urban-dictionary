@@ -1,53 +1,49 @@
 import React from 'react'
-
+import { getDefinition } from './termStuff'
 import Definition from './Definition'
-import api from './API'
+import { compose, withState, withHandlers, withProps } from 'recompose'
 
-class Term extends React.Component {
-  constructor (props) {
-    super(props)
-    this.state = {
-      input: '',
-      definition: null,
-      loading: false
+const enhance = compose(
+  withState('input', 'updateInput', ''),
+  withState('definition', 'updateDefinition', ''),
+  withState('loading', 'updateLoading', false),
+  withProps({
+    getDefinition
+  }),
+  withHandlers({
+    onInputChange: props => e => props.updateInput(e.target.value),
+    showResults: ({ updateDefinition, updateLoading }) => (err, results) => {
+      updateDefinition(results.list[0].definition)
+      updateLoading(false)
     }
-  }
-
-updateTerm (e) {
-  this.setState ({
-    input: e.target.value
   })
-}
+)
 
-getDefinition (e) {
-  e.preventDefault()
-  this.setState({ loading: true })
-  const url = `https://mashape-community-urban-dictionary.p.mashape.com/define?term=${this.state.input}`
-  api.getDefinition(url, this.showResult.bind(this))
-}
+const Term = (props) => {
+  const {
+    input,
+    definition,
+    loading,
+    updateLoading,
+    showResults,
+    getDefinition,
+    onInputChange
+  } = props
 
-showResult(err, results) {
-  this.setState({
-    error: err,
-    definition: results.list[0].definition
-  })
-  this.setState({ loading: false })
-}
-
-render () {
-    return (
-      <div className='input'>
+  return (
+    <div className='input'>
       <form>
-        <input type='text' value={this.state.input} placeholder='Insert word here' onChange={this.updateTerm.bind(this)}></input>
-        <button onClick={this.getDefinition.bind(this)}>Define</button>
+        <input type='text' value={input} placeholder='Insert word here' onChange={onInputChange}></input>
+        <button onClick={e => getDefinition(e, input, updateLoading, showResults)}>Define</button>
       </form>
-      {this.state.loading && <p>Loading</p>}
-      {this.state.definition && <Definition result={this.state.definition} />}
-      </div>
-    )
-  }
+      {loading && <p>Loading</p>}
+      {definition && <Definition result={definition} />}
+    </div>
+  )
 }
 
-export default Term
+export {
+  Term
+}
 
-// (e) => this.setState({ input: e.target.value})
+export default enhance(Term)
